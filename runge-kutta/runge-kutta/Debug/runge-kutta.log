@@ -1,3 +1,4 @@
 ﻿  Source.cpp
-  runge-kutta.vcxproj -> C:\Users\KupuK\Documents\Visual Studio 2015\Projects\runge-kutta\Debug\runge-kutta.exe
-  runge-kutta.vcxproj -> C:\Users\KupuK\Documents\Visual Studio 2015\Projects\runge-kutta\Debug\runge-kutta.pdb (Full PDB)
+c:\users\kupuk\desktop\сессия\сессия_6\уир\reckoning\runge-kutta\runge-kutta\source.cpp(24): warning C4244: инициализация: преобразование "double" в "int", возможна потеря данных
+  runge-kutta.vcxproj -> C:\Users\KupuK\Desktop\Сессия\сессия_6\уир\reckoning\runge-kutta\Debug\runge-kutta.exe
+  runge-kutta.vcxproj -> C:\Users\KupuK\Desktop\Сессия\сессия_6\уир\reckoning\runge-kutta\Debug\runge-kutta.pdb (Full PDB)
