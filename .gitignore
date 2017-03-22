@@ -6,6 +6,8 @@
 *.user
 *.userosscache
 *.sln.docstates
+*.VC.opendb
+*.VC.db
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -240,3 +242,8 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/runge-kutta/runge-kutta/Y_.txt
+/runge-kutta/runge-kutta/X_.txt
+/runge-kutta/runge-kutta/output.xls
+/runge-kutta/runge-kutta/outgr.xlsx
+/runge-kutta/runge-kutta/out.xlsx
