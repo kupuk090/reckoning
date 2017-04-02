@@ -46,9 +46,10 @@ void main()
 	double x0 = 0, y0 = 0, v0 = 4.7, teta0 = 80;
 	
 	double x, y, m, v, teta;
-	double t0 = 0, h = 0.0251, t;
+	double t0 = 0, h = 0.0025, t;
 	double maxH = -1;
 	int count = 0;
+	int writeCount = 0;
 	vector<double> k1, k2, k3, k4;		// {v, teta, x, y, m}
 
 	ofstream fx("x.txt"), fy("y.txt"), fteta("teta.txt"), ft("t.txt"), fv("v.txt"), fX("X_.txt"), fY("Y_.txt");
@@ -167,22 +168,29 @@ void main()
 		fX << X(ro(y), v) << endl;
 		fY << Y(X(ro(y), v)) << endl;
 
-		fxls << x/1000. << "\t"
-			<< y/1000. << "\t"
-			<< teta*180/M_PI << "\t"
-			<< t << "\t"
-			<< v << "\t"
-			<< X(ro(y), v) << "\t"
-			<< Y(X(ro(y), v)) << "\t" 
-			<< m << "\t" 
-			<< ro(y) << "\t" << endl;
+		if (writeCount == 10)
+		{
+			fxls << x / 1000. << "\t"
+				<< y / 1000. << "\t"
+				<< teta * 180 / M_PI << "\t"
+				<< t << "\t"
+				<< v << "\t"
+				<< X(ro(y), v) << "\t"
+				<< Y(X(ro(y), v)) << "\t"
+				<< m << "\t"
+				<< ro(y) << "\t" << endl;
+
+			writeCount = 0;
+		}
+		else
+			writeCount++;
 	}
 	std::cout << "Hight = " << y / 1000. << " km" << endl
 		<< "Teta = " << teta*180/M_PI << endl
 		<< "Mass = " << m << " kg" << endl
 		<< "Time = " << t << " sec" << endl
 		<< "Iteration count = " << count << endl;
-	std::cout << sin(1) << "\t" << sin(M_PI);
+
 	getchar();
 
 
