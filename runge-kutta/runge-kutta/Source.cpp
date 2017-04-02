@@ -11,8 +11,8 @@
 
 #define eps 1
 #define eps_ 1e-3
-#define Cx 0.3
-#define K 2.5
+#define Cx 0.3 
+#define K 1.5 // попробовать взять его примерно за 1     // попробовать занулить Y
 #define alf 0
 #define phi 0
 #define d 0.5
@@ -21,13 +21,13 @@
 #define I1 2.2e3
 #define I2 9e3
 #define EarthR 6371000
-#define fuel0 6e2
-#define fuel01 4e2
-#define fuel02 3.6e2
-#define m0 1e3
+#define fuel0 8.2e3
+#define fuel01 4e3
+#define fuel02 3.6e3
+#define m0 1.27e4
 
-int P = 1e4;
-double s = M_PI*(d*d / 4.);
+double P = 3e5;
+double s = 2;
 
 using namespace std;
 
@@ -43,7 +43,7 @@ double ro(double h);
 
 void main()
 {
-	double x0 = 0, y0 = 0, v0 = 4.7, teta0 = 70;
+	double x0 = 0, y0 = 0, v0 = 4.7, teta0 = 80;
 	
 	double x, y, m, v, teta;
 	double t0 = 0, h = 0.0251, t;
@@ -54,6 +54,10 @@ void main()
 	ofstream fx("x.txt"), fy("y.txt"), fteta("teta.txt"), ft("t.txt"), fv("v.txt"), fX("X_.txt"), fY("Y_.txt");
 	ofstream fxls("output.xls", ios::out);
 
+
+	teta0 = teta0*M_PI/180.;
+
+
 	fx << x0 << endl;
 	fy << y0 << endl;
 	fteta << teta0 << endl;
@@ -62,16 +66,17 @@ void main()
 	fX << X(ro(y0), v0) << endl;
 	fY << Y(X(ro(y0), v0)) << endl;
 
-	fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t"<< endl
-		<< x0 << "\t"
-		<< y0 << "\t"
-		<< teta0 << "\t"
+	fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t"<< "ro\t" << endl
+		<< x0/1000. << "\t"
+		<< y0/1000. << "\t"
+		<< teta0*180/M_PI << "\t"
 		<< t0 << "\t"
 		<< v0 << "\t"
 		<< X(ro(y0), v0) << "\t"
 		<< Y(X(ro(y0), v0)) << "\t" 
-		<< m0 << "\t" << endl;
-
+		<< m0 << "\t" 
+		<< ro(y0) << "\t" << endl;
+	
 	// k1
 	k1.emplace_back(h*velocityFunc(v0, m0, teta0, y0));
 	k1.emplace_back(h*tetaFunc(v0, m0, teta0, y0));
@@ -99,7 +104,7 @@ void main()
 	k4.emplace_back(h*lengthFunc(v0 + k3.at(0), teta0 + k3.at(2), y0 + k3.at(4)));
 	k4.emplace_back(h*hightFunc(v0 + k3.at(0), teta0 + k3.at(2)));
 	k4.emplace_back(h*massFunc(m0 + k3.at(4)));
-
+	
 	v = v0 + (k1.at(0) + 2 * k2.at(0) + 2 * k3.at(0) + k4.at(0)) / 6.;
 	teta = teta0 + (k1.at(1) + 2 * k2.at(1) + 2 * k3.at(1) + k4.at(1)) / 6.;
 	x = x0 + (k1.at(2) + 2 * k2.at(2) + 2 * k3.at(2) + k4.at(2)) / 6.;
@@ -115,7 +120,7 @@ void main()
 	while ((y + 1)> eps)
 	{
 		maxH = y;
-
+		
 		// k1
 		k1[0] = h*velocityFunc(v, m, teta, y);
 		k1[1] = h*tetaFunc(v, m, teta, y);
@@ -162,20 +167,22 @@ void main()
 		fX << X(ro(y), v) << endl;
 		fY << Y(X(ro(y), v)) << endl;
 
-		fxls << x << "\t"
-			<< y << "\t"
-			<< teta << "\t"
+		fxls << x/1000. << "\t"
+			<< y/1000. << "\t"
+			<< teta*180/M_PI << "\t"
 			<< t << "\t"
 			<< v << "\t"
 			<< X(ro(y), v) << "\t"
 			<< Y(X(ro(y), v)) << "\t" 
-			<< m << "\t" << endl;
+			<< m << "\t" 
+			<< ro(y) << "\t" << endl;
 	}
 	std::cout << "Hight = " << y / 1000. << " km" << endl
-		<< "Teta = " << teta << endl
+		<< "Teta = " << teta*180/M_PI << endl
 		<< "Mass = " << m << " kg" << endl
 		<< "Time = " << t << " sec" << endl
 		<< "Iteration count = " << count << endl;
+	std::cout << sin(1) << "\t" << sin(M_PI);
 	getchar();
 
 
@@ -205,13 +212,15 @@ double Y(double X)
 }
 double Gc(double m)
 {
-	if (((m > (m0 - (fuel01 + fuel02)))) && (P != 0))
-		if ((m > (m0 - fuel01)))
-			return (P / I1);
-		else
-			return (P / I2);
-	//if ((m - (m0 - (fuel0))) > eps_)
-	//	return (P / I1);
+	//if (((m > (m0 - (fuel01 + fuel02)))) && (P != 0))
+	//{
+	//	if ((m > (m0 - fuel01)))
+	//		return (P / I1);
+	//	else
+	//		return (P / I2);
+	//}
+	if ((m - (m0 - (fuel0))) > eps_)
+		return (P / I1);
 	else
 	{
 		P = 0;
@@ -221,19 +230,19 @@ double Gc(double m)
 
 double velocityFunc(double v, double m, double teta, double y)
 {
-	return (P*cos(M_PI*(alf + phi) / 180.) - X(ro(y), v) - m*g*sin(M_PI*teta / 180.)) / m;
+	return (P*cos(M_PI*(alf + phi) / 180.) - X(ro(y), v) - m*g*sin(teta)) / m;
 }
 double tetaFunc(double v, double m, double teta, double y)
 {
-	return (P*sin(M_PI*(alf + phi) / 180.) + Y(X(ro(y), v)) - m*g*cos(M_PI*teta / 180.) + (m*v*v*cos(M_PI*teta / 180.) / (EarthR + y))) / (m*abs(v));
+	return (P*sin(M_PI*(alf + phi) / 180.) + Y(X(ro(y), v)) - m*g*cos(teta) + (m*v*v*cos(teta) / (EarthR + y))) / (m*v);
 }
 double lengthFunc(double v, double teta, double y)
 {
-	return abs(v)*cos(M_PI*teta / 180.)*(EarthR / (EarthR + y));
+	return v*cos(teta)*(EarthR / (EarthR + y));
 }
 double hightFunc(double v, double teta)
 {
-	return v*sin(M_PI*teta / 180.);
+	return v*sin(teta);
 }
 double massFunc(double m)
 {
