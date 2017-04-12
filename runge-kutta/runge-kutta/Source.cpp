@@ -12,7 +12,7 @@
 #define eps 1
 #define eps_ 1e-3
 #define Cx 0.3 
-#define K 1.5 // попробовать взять его примерно за 1     // попробовать занулить Y
+#define K 1.5 
 #define alf 0
 #define phi 0
 #define d 0.5
@@ -28,6 +28,7 @@
 
 double P = 3e5;
 double s = 2;
+bool secondVehicle = true;
 
 using namespace std;
 
@@ -59,14 +60,6 @@ void main()
 	teta0 = teta0*M_PI/180.;
 
 
-	fx << x0 << endl;
-	fy << y0 << endl;
-	fteta << teta0 << endl;
-	ft << t0 << endl;
-	fv << v0 << endl;
-	fX << X(ro(y0), v0) << endl;
-	fY << Y(X(ro(y0), v0)) << endl;
-
 	fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t"<< "ro\t" << endl
 		<< x0/1000. << "\t"
 		<< y0/1000. << "\t"
@@ -86,24 +79,24 @@ void main()
 	k1.emplace_back(h*massFunc(m0));
 	
 	// k2
-	k2.emplace_back(h*velocityFunc(v0 + k1.at(0) / 2., m0 + k1.at(1) / 2., teta0 + k1.at(2) / 2.,  y0 + k1.at(4) / 2.));
-	k2.emplace_back(h*tetaFunc(v0 + k1.at(0) / 2., m0 + k1.at(1) / 2., teta0 + k1.at(2) / 2., y0 + k1.at(4) / 2.));
-	k2.emplace_back(h*lengthFunc(v0 + k1.at(0) / 2., teta0 + k1.at(2) / 2., y0 + k1.at(4) / 2.));
-	k2.emplace_back(h*hightFunc(v0 + k1.at(0) / 2., teta0 + k1.at(2) / 2.));
+	k2.emplace_back(h*velocityFunc(v0 + k1.at(0) / 2., m0 + k1.at(4) / 2., teta0 + k1.at(1) / 2.,  y0 + k1.at(3) / 2.));
+	k2.emplace_back(h*tetaFunc(v0 + k1.at(0) / 2., m0 + k1.at(4) / 2., teta0 + k1.at(1) / 2., y0 + k1.at(3) / 2.));
+	k2.emplace_back(h*lengthFunc(v0 + k1.at(0) / 2., teta0 + k1.at(1) / 2., y0 + k1.at(3) / 2.));
+	k2.emplace_back(h*hightFunc(v0 + k1.at(0) / 2., teta0 + k1.at(1) / 2.));
 	k2.emplace_back(h*massFunc(m0 + k1.at(4) / 2.));
 
 	// k3
-	k3.emplace_back(h*velocityFunc(v0 + k2.at(0) / 2., m0 + k2.at(1) / 2., teta0 + k2.at(2) / 2., y0 + k2.at(4) / 2.));
-	k3.emplace_back(h*tetaFunc(v0 + k2.at(0) / 2., m0 + k2.at(1) / 2., teta0 + k2.at(2) / 2., y0 + k2.at(4) / 2.));
-	k3.emplace_back(h*lengthFunc(v0 + k2.at(0) / 2., teta0 + k2.at(2) / 2., y0 + k2.at(4) / 2.));
-	k3.emplace_back(h*hightFunc(v0 + k2.at(0) / 2., teta0 + k2.at(2) / 2.));
+	k3.emplace_back(h*velocityFunc(v0 + k2.at(0) / 2., m0 + k2.at(4) / 2., teta0 + k2.at(1) / 2., y0 + k2.at(3) / 2.));
+	k3.emplace_back(h*tetaFunc(v0 + k2.at(0) / 2., m0 + k2.at(4) / 2., teta0 + k2.at(1) / 2., y0 + k2.at(3) / 2.));
+	k3.emplace_back(h*lengthFunc(v0 + k2.at(0) / 2., teta0 + k2.at(1) / 2., y0 + k2.at(3) / 2.));
+	k3.emplace_back(h*hightFunc(v0 + k2.at(0) / 2., teta0 + k2.at(1) / 2.));
 	k3.emplace_back(h*massFunc(m0 + k2.at(4) / 2.));
 	
 	// k4
-	k4.emplace_back(h*velocityFunc(v0 + k3.at(0), m0 + k3.at(1), teta0 + k3.at(2), y0 + k3.at(4)));
-	k4.emplace_back(h*tetaFunc(v0 + k3.at(0), m0 + k3.at(1), teta0 + k3.at(2), y0 + k3.at(4)));
-	k4.emplace_back(h*lengthFunc(v0 + k3.at(0), teta0 + k3.at(2), y0 + k3.at(4)));
-	k4.emplace_back(h*hightFunc(v0 + k3.at(0), teta0 + k3.at(2)));
+	k4.emplace_back(h*velocityFunc(v0 + k3.at(0), m0 + k3.at(4), teta0 + k3.at(1), y0 + k3.at(3)));
+	k4.emplace_back(h*tetaFunc(v0 + k3.at(0), m0 + k3.at(4), teta0 + k3.at(1), y0 + k3.at(3)));
+	k4.emplace_back(h*lengthFunc(v0 + k3.at(0), teta0 + k3.at(1), y0 + k3.at(3)));
+	k4.emplace_back(h*hightFunc(v0 + k3.at(0), teta0 + k3.at(1)));
 	k4.emplace_back(h*massFunc(m0 + k3.at(4)));
 	
 	v = v0 + (k1.at(0) + 2 * k2.at(0) + 2 * k3.at(0) + k4.at(0)) / 6.;
@@ -121,6 +114,13 @@ void main()
 	while ((y + 1)> eps)
 	{
 		maxH = y;
+
+		// условие накладываемое на ПВРД высотой
+		if (secondVehicle && (y > 7.5e4))
+		{
+			P = 0;
+			secondVehicle = false;
+		}
 		
 		// k1
 		k1[0] = h*velocityFunc(v, m, teta, y);
@@ -130,24 +130,24 @@ void main()
 		k1[4] = h*massFunc(m);
 
 		// k2
-		k2[0] = h*velocityFunc(v + k1.at(0) / 2., m + k1.at(1) / 2., teta + k1.at(2) / 2., y + k1.at(4) / 2.);
-		k2[1] = h*tetaFunc(v + k1.at(0) / 2., m + k1.at(1) / 2., teta + k1.at(2) / 2., y + k1.at(4) / 2.);
-		k2[2] = h*lengthFunc(v + k1.at(0) / 2., teta + k1.at(2) / 2., y + k1.at(4) / 2.);
-		k2[3] = h*hightFunc(v + k1.at(0) / 2., teta + k1.at(2) / 2.);
+		k2[0] = h*velocityFunc(v + k1.at(0) / 2., m + k1.at(4) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
+		k2[1] = h*tetaFunc(v + k1.at(0) / 2., m + k1.at(4) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
+		k2[2] = h*lengthFunc(v + k1.at(0) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
+		k2[3] = h*hightFunc(v + k1.at(0) / 2., teta + k1.at(1) / 2.);
 		k2[4] = h*massFunc(m + k1.at(4) / 2.);
 
 		// k3
-		k3[0] = h*velocityFunc(v + k2.at(0) / 2., m + k2.at(1) / 2., teta + k2.at(2) / 2., y + k2.at(4) / 2.);
-		k3[1] = h*tetaFunc(v + k2.at(0) / 2., m + k2.at(1) / 2., teta + k2.at(2) / 2., y + k2.at(4) / 2.);
-		k3[2] = h*lengthFunc(v + k2.at(0) / 2., teta + k2.at(2) / 2., y + k2.at(4) / 2.);
-		k3[3] = h*hightFunc(v + k2.at(0) / 2., teta + k2.at(2) / 2.);
+		k3[0] = h*velocityFunc(v + k2.at(0) / 2., m + k2.at(4) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
+		k3[1] = h*tetaFunc(v + k2.at(0) / 2., m + k2.at(4) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
+		k3[2] = h*lengthFunc(v + k2.at(0) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
+		k3[3] = h*hightFunc(v + k2.at(0) / 2., teta + k2.at(1) / 2.);
 		k3[4] = h*massFunc(m + k2.at(4) / 2.);
 
 		// k4
-		k4[0] = h*velocityFunc(v + k3.at(0), m + k3.at(1), teta + k3.at(2), y + k3.at(4));
-		k4[1] = h*tetaFunc(v + k3.at(0), m + k3.at(1), teta + k3.at(2), y + k3.at(4));
-		k4[2] = h*lengthFunc(v + k3.at(0), teta + k3.at(2), y + k3.at(4));
-		k4[3] = h*hightFunc(v + k3.at(0), teta + k3.at(2));
+		k4[0] = h*velocityFunc(v + k3.at(0), m + k3.at(4), teta + k3.at(1), y + k3.at(3));
+		k4[1] = h*tetaFunc(v + k3.at(0), m + k3.at(4), teta + k3.at(1), y + k3.at(3));
+		k4[2] = h*lengthFunc(v + k3.at(0), teta + k3.at(1), y + k3.at(3));
+		k4[3] = h*hightFunc(v + k3.at(0), teta + k3.at(1));
 		k4[4] = h*massFunc(m + k3.at(4));
 
 
@@ -160,15 +160,8 @@ void main()
 
 		count++;
 
-		fx << x << endl;
-		fy << y << endl;
-		fteta << teta << endl;
-		ft << t << endl;
-		fv << v << endl;
-		fX << X(ro(y), v) << endl;
-		fY << Y(X(ro(y), v)) << endl;
 
-		if (writeCount == 10)
+		if (writeCount == 50)
 		{
 			fxls << x / 1000. << "\t"
 				<< y / 1000. << "\t"
@@ -220,18 +213,19 @@ double Y(double X)
 }
 double Gc(double m)
 {
-	//if (((m > (m0 - (fuel01 + fuel02)))) && (P != 0))
-	//{
-	//	if ((m > (m0 - fuel01)))
-	//		return (P / I1);
-	//	else
-	//		return (P / I2);
-	//}
-	if ((m - (m0 - (fuel0))) > eps_)
-		return (P / I1);
+	if (((m > (m0 - (fuel01 + fuel02)))) && (P != 0))
+	{
+		if ((m > (m0 - fuel01)))
+			return (P / I1);
+		else
+			return (P / I2);
+	}
+	//if ((m - (m0 - (fuel0))) > eps_)
+	//	return (P / I1);
 	else
 	{
 		P = 0;
+		secondVehicle = false;
 		return 0;
 	}
 }
@@ -254,5 +248,8 @@ double hightFunc(double v, double teta)
 }
 double massFunc(double m)
 {
-	return -Gc(m);
+	if (secondVehicle)
+		return -Gc(m);
+	else
+		return 0;
 }
