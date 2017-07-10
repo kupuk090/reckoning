@@ -4,16 +4,18 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <fstream>
-
 
 
 
 #define eps 1
 #define eps_ 1e-3
-#define Cx 0.3 
-#define K 1.5 
-#define alf 0
+#define Cx 0.3
+#define K 3.5
+
+//#define alf 0
+
 #define phi 0
 #define d 0.5
 #define ro0 1.2250
@@ -21,14 +23,30 @@
 #define I1 2.2e3
 #define I2 9e3
 #define EarthR 6371000
-#define fuel0 8.2e3
-#define fuel01 4e3
-#define fuel02 3.6e3
+
+//#define fuel0 8.2e3
+#define fuel01 5e3
+//#define fuel01 0
+#define fuel02 4.6e3
+//#define fuel02 9.6e3
 #define m0 1.27e4
+#define massVeh1 1e3
+#define massVeh2 8e2
+
+#define horizontalH 5.4e3
+#define horizontalErr 400
+#define horizontalFlying false
+
+#define finalPoint 5e5
+#define finalErr 1e2
+
+double alf = 0;
+//double m0 = 1.27e4;
 
 double P = 3e5;
 double s = 2;
-bool secondVehicle = true;
+bool firstVehicle = true;
+bool secondVehicle = false;
 
 using namespace std;
 
@@ -42,23 +60,31 @@ double X(double ro, double v);
 double Y(double X);
 double ro(double h);
 
+map<string, double> RungeKutta(const map<string, double>* data, const double step);
+void ballisticTrajectory(map<string, double> itData, double shutoffH, double h, ofstream &fxls, map<string, double>* lastItter);
+void constParamTrajectory(map<string, double> itData, double shutoffH, double h, ofstream & fxls, map<string, double>* lastItter);
+
+
 void main()
 {
 	double x0 = 0, y0 = 0, v0 = 4.7, teta0 = 80;
-	
-	double x, y, m, v, teta;
-	double t0 = 0, h = 0.0025, t;
+
+	double t0 = 0, h = 0.0025;
 	double maxH = -1;
 	int count = 0;
 	int writeCount = 0;
-	vector<double> k1, k2, k3, k4;		// {v, teta, x, y, m}
 
-	ofstream fx("x.txt"), fy("y.txt"), fteta("teta.txt"), ft("t.txt"), fv("v.txt"), fX("X_.txt"), fY("Y_.txt");
+	double shutoffH = -1;
+
+	bool stopWriting = false;
+
+	map<string, double> itData;
+	map<string, double> lastItter;
+	vector<map<string, double>> result;
+
 	ofstream fxls("output.xls", ios::out);
 
-
 	teta0 = teta0*M_PI/180.;
-
 
 	fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t"<< "ro\t" << endl
 		<< x0/1000. << "\t"
@@ -71,129 +97,178 @@ void main()
 		<< m0 << "\t" 
 		<< ro(y0) << "\t" << endl;
 	
-	// k1
-	k1.emplace_back(h*velocityFunc(v0, m0, teta0, y0));
-	k1.emplace_back(h*tetaFunc(v0, m0, teta0, y0));
-	k1.emplace_back(h*lengthFunc(v0, teta0, y0));
-	k1.emplace_back(h*hightFunc(v0, teta0));
-	k1.emplace_back(h*massFunc(m0));
+
+//==========================================================================================================================	
+	//double left = 0, right = 2e5;
+	//bool maxHightAchieved = false;
+	//bool trigger1 = false, trigger2 = false;
+	//double deltaY;
+	//while (true)
+	//{
+	//	itData["velocity"] = v0;
+	//	itData["teta"] = teta0;
+	//	itData["length"] = x0;
+	//	itData["hight"] = y0;
+	//	itData["mass"] = m0;
+	//	itData["time"] = t0;
+
+	//	maxH = itData["hight"] - 1;
+	//	P = 3e5;
+	//	firstVehicle = true;
+	//	secondVehicle = false;
+	//	trigger1 = false;
+	//	trigger2 = false;
+	//	shutoffH = (left + right) / 2.;
+	//	deltaY = -1;
+
+	//	while (itData["hight"] > -1)
+	//	{
+	//		deltaY = Y(X(ro(itData["hight"]), itData["velocity"]))*cos(itData["teta"]) - X(ro(itData["hight"]), itData["velocity"])*sin(itData["teta"]) - itData["mass"] * g;
+
+	//		if (maxHightAchieved && (fabs(itData["teta"]*180/M_PI) < eps) && (deltaY > 0))
+	//			break;
+
+	//		if (itData["hight"] < maxH)
+	//			maxHightAchieved = true;
+	//		else
+	//			maxH = itData["hight"];
+
+	//		// отстреливание ступеней
+	//		if (!firstVehicle && !trigger1)
+	//		{
+	//			itData["mass"] = itData["mass"] - massVeh1;
+	//			trigger1 = true;
+	//		}
+	//		if (!firstVehicle && !secondVehicle && trigger2)
+	//		{
+	//			itData["mass"] = itData["mass"] - massVeh2;
+	//			trigger2 = true;
+	//		}
+
+	//		// условие накладываемое на ПВРД высотой
+	//		if (secondVehicle && (itData["hight"] > 7.5e4))
+	//		{
+	//			P = 0;
+	//			secondVehicle = false;
+	//		}
+
+	//		// отключение двигателя на высоте shuoffH
+	//		if (fabs(itData["hight"] - shutoffH) < eps)
+	//		{
+	//			P = 0;
+	//			firstVehicle = false;
+	//			secondVehicle = false;
+	//		}
+
+	//		//runge-kutta
+	//		itData = RungeKutta(&itData, h);
+	//	}
+	//	if (fabs(itData["hight"] - horizontalH) < horizontalErr)
+	//		break;
+	//	else
+	//	{
+	//		if (itData["hight"] > horizontalH)
+	//			right = shutoffH;
+	//		else
+	//			left = shutoffH;
+	//	}
+	//}
+//==========================================================================================================================
+
+//==========================================================================================================================
 	
-	// k2
-	k2.emplace_back(h*velocityFunc(v0 + k1.at(0) / 2., m0 + k1.at(4) / 2., teta0 + k1.at(1) / 2.,  y0 + k1.at(3) / 2.));
-	k2.emplace_back(h*tetaFunc(v0 + k1.at(0) / 2., m0 + k1.at(4) / 2., teta0 + k1.at(1) / 2., y0 + k1.at(3) / 2.));
-	k2.emplace_back(h*lengthFunc(v0 + k1.at(0) / 2., teta0 + k1.at(1) / 2., y0 + k1.at(3) / 2.));
-	k2.emplace_back(h*hightFunc(v0 + k1.at(0) / 2., teta0 + k1.at(1) / 2.));
-	k2.emplace_back(h*massFunc(m0 + k1.at(4) / 2.));
+	//itData["velocity"] = 1700;			// на 4 махах адекватные значения угла
+	//itData["teta"] = x0;
+	//itData["length"] = y0;
+	//itData["hight"] = 2e4;
+	////itData["mass"] = m0 - fuel01;
+	//itData["mass"] = m0;
+	//itData["time"] = t0;
 
-	// k3
-	k3.emplace_back(h*velocityFunc(v0 + k2.at(0) / 2., m0 + k2.at(4) / 2., teta0 + k2.at(1) / 2., y0 + k2.at(3) / 2.));
-	k3.emplace_back(h*tetaFunc(v0 + k2.at(0) / 2., m0 + k2.at(4) / 2., teta0 + k2.at(1) / 2., y0 + k2.at(3) / 2.));
-	k3.emplace_back(h*lengthFunc(v0 + k2.at(0) / 2., teta0 + k2.at(1) / 2., y0 + k2.at(3) / 2.));
-	k3.emplace_back(h*hightFunc(v0 + k2.at(0) / 2., teta0 + k2.at(1) / 2.));
-	k3.emplace_back(h*massFunc(m0 + k2.at(4) / 2.));
+	//firstVehicle = false;
+
+	//constParamTrajectory(itData, shutoffH, h, fxls, &lastItter);
+
+//==========================================================================================================================
+
+	//itData["velocity"] = v0;
+	//itData["teta"] = teta0;
+	//itData["length"] = x0;
+	//itData["hight"] = y0;
+	//itData["mass"] = m0;
+	//itData["time"] = t0;
+
+	//P = 3e5;
+	//firstVehicle = true;
+	//secondVehicle = false;
+	//itData = RungeKutta(&itData, h);
+	//count++;
+
+	//ballisticTrajectory(itData, shutoffH, h, fxls, &lastItter);
+
+//==========================================================================================================================
 	
-	// k4
-	k4.emplace_back(h*velocityFunc(v0 + k3.at(0), m0 + k3.at(4), teta0 + k3.at(1), y0 + k3.at(3)));
-	k4.emplace_back(h*tetaFunc(v0 + k3.at(0), m0 + k3.at(4), teta0 + k3.at(1), y0 + k3.at(3)));
-	k4.emplace_back(h*lengthFunc(v0 + k3.at(0), teta0 + k3.at(1), y0 + k3.at(3)));
-	k4.emplace_back(h*hightFunc(v0 + k3.at(0), teta0 + k3.at(1)));
-	k4.emplace_back(h*massFunc(m0 + k3.at(4)));
-	
-	v = v0 + (k1.at(0) + 2 * k2.at(0) + 2 * k3.at(0) + k4.at(0)) / 6.;
-	teta = teta0 + (k1.at(1) + 2 * k2.at(1) + 2 * k3.at(1) + k4.at(1)) / 6.;
-	x = x0 + (k1.at(2) + 2 * k2.at(2) + 2 * k3.at(2) + k4.at(2)) / 6.;
-	y = y0 + (k1.at(3) + 2 * k2.at(3) + 2 * k3.at(3) + k4.at(3)) / 6.;
-	m = m0 + (k1.at(4) + 2 * k2.at(4) + 2 * k3.at(4) + k4.at(4)) / 6.;
-	t = t0 + h;
-
-	count++;
-
-	fx << x << endl;
-	fy << y << endl;
-
-	while ((y + 1)> eps)
+	double left = 45, right = 85;
+	double startingTeta;
+	int dihotomyCount = 0;
+	lastItter.clear();
+	while (true)
 	{
-		maxH = y;
+		startingTeta = (left + right) / 2.;
 
-		// условие накладываемое на ПВРД высотой
-		if (secondVehicle && (y > 7.5e4))
-		{
-			P = 0;
-			secondVehicle = false;
-		}
-		
-		// k1
-		k1[0] = h*velocityFunc(v, m, teta, y);
-		k1[1] = h*tetaFunc(v, m, teta, y);
-		k1[2] = h*lengthFunc(v, teta, y);
-		k1[3] = h*hightFunc(v, teta);
-		k1[4] = h*massFunc(m);
+		itData["velocity"] = v0;
+		itData["teta"] = startingTeta*M_PI / 180.;
+		itData["length"] = x0;
+		itData["hight"] = y0;
+		itData["mass"] = m0;
+		itData["time"] = t0;
 
-		// k2
-		k2[0] = h*velocityFunc(v + k1.at(0) / 2., m + k1.at(4) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
-		k2[1] = h*tetaFunc(v + k1.at(0) / 2., m + k1.at(4) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
-		k2[2] = h*lengthFunc(v + k1.at(0) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
-		k2[3] = h*hightFunc(v + k1.at(0) / 2., teta + k1.at(1) / 2.);
-		k2[4] = h*massFunc(m + k1.at(4) / 2.);
+		P = 3e5;
+		firstVehicle = true;
+		secondVehicle = false;
 
-		// k3
-		k3[0] = h*velocityFunc(v + k2.at(0) / 2., m + k2.at(4) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
-		k3[1] = h*tetaFunc(v + k2.at(0) / 2., m + k2.at(4) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
-		k3[2] = h*lengthFunc(v + k2.at(0) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
-		k3[3] = h*hightFunc(v + k2.at(0) / 2., teta + k2.at(1) / 2.);
-		k3[4] = h*massFunc(m + k2.at(4) / 2.);
+		fxls.open("output.xls", ios::out);
+		fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t" << "ro\t" << endl
+			<< x0 / 1000. << "\t"
+			<< y0 / 1000. << "\t"
+			<< teta0 * 180 / M_PI << "\t"
+			<< t0 << "\t"
+			<< v0 << "\t"
+			<< X(ro(y0), v0) << "\t"
+			<< Y(X(ro(y0), v0)) << "\t"
+			<< m0 << "\t"
+			<< ro(y0) << "\t" << endl;
 
-		// k4
-		k4[0] = h*velocityFunc(v + k3.at(0), m + k3.at(4), teta + k3.at(1), y + k3.at(3));
-		k4[1] = h*tetaFunc(v + k3.at(0), m + k3.at(4), teta + k3.at(1), y + k3.at(3));
-		k4[2] = h*lengthFunc(v + k3.at(0), teta + k3.at(1), y + k3.at(3));
-		k4[3] = h*hightFunc(v + k3.at(0), teta + k3.at(1));
-		k4[4] = h*massFunc(m + k3.at(4));
+		ballisticTrajectory(itData, -1, h, fxls, &lastItter);
+		dihotomyCount++;
 
+		if (dihotomyCount >= 100)
+			break;
 
-		v += (k1.at(0) + 2 * k2.at(0) + 2 * k3.at(0) + k4.at(0)) / 6.;
-		teta += (k1.at(1) + 2 * k2.at(1) + 2 * k3.at(1) + k4.at(1)) / 6.;
-		x += (k1.at(2) + 2 * k2.at(2) + 2 * k3.at(2) + k4.at(2)) / 6.;
-		y += (k1.at(3) + 2 * k2.at(3) + 2 * k3.at(3) + k4.at(3)) / 6.;
-		m += (k1.at(4) + 2 * k2.at(4) + 2 * k3.at(4) + k4.at(4)) / 6.;
-		t += h;
-
-		count++;
-
-
-		if (writeCount == 50)
-		{
-			fxls << x / 1000. << "\t"
-				<< y / 1000. << "\t"
-				<< teta * 180 / M_PI << "\t"
-				<< t << "\t"
-				<< v << "\t"
-				<< X(ro(y), v) << "\t"
-				<< Y(X(ro(y), v)) << "\t"
-				<< m << "\t"
-				<< ro(y) << "\t" << endl;
-
-			writeCount = 0;
-		}
+		if (fabs(lastItter["length"] - finalPoint) < finalErr)
+			break;
 		else
-			writeCount++;
+		{
+			if (lastItter["length"] > finalPoint)
+				right = startingTeta;
+			else
+				left = startingTeta;
+		}
 	}
-	std::cout << "Hight = " << y / 1000. << " km" << endl
-		<< "Teta = " << teta*180/M_PI << endl
-		<< "Mass = " << m << " kg" << endl
-		<< "Time = " << t << " sec" << endl
-		<< "Iteration count = " << count << endl;
+
+	std::cout << "StartingTeta = " << startingTeta << endl << endl;
+
+//==========================================================================================================================
+
+//==========================================================================================================================
+	std::cout << "Hight = " << lastItter["hight"] / 1000. << " km" << endl
+		<< "Length = " << lastItter["length"] / 1000. << " km" << endl
+		<< "Teta = " << lastItter["teta"] *180/M_PI << endl
+		<< "Mass = " << lastItter["mass"] << " kg" << endl
+		<< "Time = " << lastItter["time"] << " sec" << endl
+		<< "Iteration count = " << dihotomyCount << endl;
 
 	getchar();
-
-
-	fx.close();
-	fy.close();
-	fteta.close();
-	ft.close();
-	fv.close();
-	fX.close();
-	fY.close();
 
 	fxls.close();
 }
@@ -215,10 +290,16 @@ double Gc(double m)
 {
 	if (((m > (m0 - (fuel01 + fuel02)))) && (P != 0))
 	{
-		if ((m > (m0 - fuel01)))
+		if ((m > (m0 - fuel01)) && firstVehicle)
+		{
 			return (P / I1);
+		}
 		else
+		{
+			firstVehicle = false;
+			secondVehicle = true;
 			return (P / I2);
+		}
 	}
 	//if ((m - (m0 - (fuel0))) > eps_)
 	//	return (P / I1);
@@ -229,6 +310,7 @@ double Gc(double m)
 		return 0;
 	}
 }
+
 
 double velocityFunc(double v, double m, double teta, double y)
 {
@@ -248,8 +330,170 @@ double hightFunc(double v, double teta)
 }
 double massFunc(double m)
 {
-	if (secondVehicle)
-		return -Gc(m);
-	else
-		return 0;
+	return -Gc(m);
+}
+
+
+map<string, double> RungeKutta(const map<string, double>* data, const double step)
+{
+	double v, teta, x, y, m, t;
+	double h = step;
+	vector<double> k1(5), k2(5), k3(5), k4(5);		// {v, teta, x, y, m}
+	map<string, double> result;
+
+	v = data->at("velocity");
+	teta = data->at("teta");
+	x = data->at("length");
+	y = data->at("hight");
+	m = data->at("mass");
+	t = data->at("time");
+
+	// k1
+	k1[0] = h*velocityFunc(v, m, teta, y);
+	k1[1] = h*tetaFunc(v, m, teta, y);
+	k1[2] = h*lengthFunc(v, teta, y);
+	k1[3] = h*hightFunc(v, teta);
+	k1[4] = h*massFunc(m);
+
+	// k2
+	k2[0] = h*velocityFunc(v + k1.at(0) / 2., m + k1.at(4) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
+	k2[1] = h*tetaFunc(v + k1.at(0) / 2., m + k1.at(4) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
+	k2[2] = h*lengthFunc(v + k1.at(0) / 2., teta + k1.at(1) / 2., y + k1.at(3) / 2.);
+	k2[3] = h*hightFunc(v + k1.at(0) / 2., teta + k1.at(1) / 2.);
+	k2[4] = h*massFunc(m + k1.at(4) / 2.);
+
+	// k3
+	k3[0] = h*velocityFunc(v + k2.at(0) / 2., m + k2.at(4) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
+	k3[1] = h*tetaFunc(v + k2.at(0) / 2., m + k2.at(4) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
+	k3[2] = h*lengthFunc(v + k2.at(0) / 2., teta + k2.at(1) / 2., y + k2.at(3) / 2.);
+	k3[3] = h*hightFunc(v + k2.at(0) / 2., teta + k2.at(1) / 2.);
+	k3[4] = h*massFunc(m + k2.at(4) / 2.);
+
+	// k4
+	k4[0] = h*velocityFunc(v + k3.at(0), m + k3.at(4), teta + k3.at(1), y + k3.at(3));
+	k4[1] = h*tetaFunc(v + k3.at(0), m + k3.at(4), teta + k3.at(1), y + k3.at(3));
+	k4[2] = h*lengthFunc(v + k3.at(0), teta + k3.at(1), y + k3.at(3));
+	k4[3] = h*hightFunc(v + k3.at(0), teta + k3.at(1));
+	k4[4] = h*massFunc(m + k3.at(4));
+
+
+	v += (k1.at(0) + 2 * k2.at(0) + 2 * k3.at(0) + k4.at(0)) / 6.;
+	teta += (k1.at(1) + 2 * k2.at(1) + 2 * k3.at(1) + k4.at(1)) / 6.;
+	x += (k1.at(2) + 2 * k2.at(2) + 2 * k3.at(2) + k4.at(2)) / 6.;
+	y += (k1.at(3) + 2 * k2.at(3) + 2 * k3.at(3) + k4.at(3)) / 6.;
+	m += (k1.at(4) + 2 * k2.at(4) + 2 * k3.at(4) + k4.at(4)) / 6.;
+	t += h;
+
+	result.insert(make_pair("velocity", v));
+	result.insert(make_pair("teta", teta));
+	result.insert(make_pair("length", x));
+	result.insert(make_pair("hight", y));
+	result.insert(make_pair("mass", m));
+	result.insert(make_pair("time", t));
+
+	return result;
+}
+void ballisticTrajectory(map<string, double> itData, double shutoffH, double h, ofstream & fxls, map<string, double>* lastItter)
+{
+	int writeCount = 1;
+	int writingPeriod = 1/h - 1;
+	bool trigger1 = false, trigger2 = false;
+
+	//runge-kutta
+	itData = RungeKutta(&itData, h);
+
+	while ((itData["hight"] + 1)> eps)
+	{
+		//// отстреливание ступеней
+		//if (!firstVehicle && !trigger1)
+		//{
+		//	itData["mass"] = itData["mass"] - massVeh1;
+		//	m0 -= massVeh1;
+		//	trigger1 = true;
+		//}
+		//if (!firstVehicle && !secondVehicle && !trigger2)
+		//{
+		//	itData["mass"] = itData["mass"] - massVeh2;
+		//	m0 -= massVeh2;
+		//	trigger2 = true;
+		//}
+
+		// условие накладываемое на ПВРД высотой
+		if (secondVehicle && (itData["hight"] > 7.5e4))
+		{
+			P = 0;
+			secondVehicle = false;
+		}
+
+		// отключение двигателя на высоте shuoffH
+		if ((fabs(itData["hight"] - shutoffH) < eps) && (shutoffH > 0))
+		{
+			P = 0;
+			firstVehicle = false;
+			secondVehicle = false;
+		}
+		
+		//runge-kutta
+		itData = RungeKutta(&itData, h);
+
+		if (writeCount == writingPeriod)
+		{
+			fxls << itData["length"] / 1000. << "\t"
+				<< itData["hight"] / 1000. << "\t"
+				<< itData["teta"] * 180 / M_PI << "\t"
+				<< itData["time"] << "\t"
+				<< itData["velocity"] << "\t"
+				<< X(ro(itData["hight"]), itData["velocity"]) << "\t"
+				<< Y(X(ro(itData["hight"]), itData["velocity"])) << "\t"
+				<< itData["mass"] << "\t"
+				<< ro(itData["hight"]) << "\t" << endl;
+
+			writeCount = 0;
+		}
+		else
+			writeCount++;
+	}
+
+	fxls.close();
+
+	lastItter->clear();
+	lastItter->insert(itData.begin(), itData.end());
+}
+void constParamTrajectory(map<string, double> itData, double shutoffH, double h, ofstream & fxls, map<string, double>* lastItter)
+{
+	double b1, b2;
+	int writeCount = 1;
+	int writingPeriod = 1 / h - 1;
+	while (P > 0)
+	{
+		b1 = X(ro(itData["hight"]), itData["velocity"]);
+		b2 = -Y(X(ro(itData["hight"]), itData["velocity"])) + itData["mass"] * g - itData["mass"] * itData["velocity"] * itData["velocity"] * cos(itData["teta"]) / (EarthR + itData["hight"]);
+		alf = atan2(b2, b1) * 180 / M_PI;
+		P = b1 / cos(alf*M_PI / 180.);
+
+		itData = RungeKutta(&itData, h);
+
+		if (writeCount == writingPeriod)
+		{
+			fxls << itData["length"] / 1000. << "\t"
+				<< itData["hight"] / 1000. << "\t"
+				<< itData["teta"] * 180 / M_PI << "\t"
+				<< itData["time"] << "\t"
+				<< itData["velocity"] << "\t"
+				<< X(ro(itData["hight"]), itData["velocity"]) << "\t"
+				<< Y(X(ro(itData["hight"]), itData["velocity"])) << "\t"
+				<< itData["mass"] << "\t"
+				<< ro(itData["hight"]) << "\t" << endl;
+
+			writeCount = 0;
+		}
+		else
+			writeCount++;
+	}
+	secondVehicle = false;
+	std::cout << "Alfa = " << alf << endl;
+	alf = 0;
+	//itData["mass"] += massVeh1;
+
+	ballisticTrajectory(itData, shutoffH, h, fxls, lastItter);
 }

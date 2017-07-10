@@ -248,3 +248,6 @@ ModelManifest.xml
 /runge-kutta/runge-kutta/outgr.xlsx
 /runge-kutta/runge-kutta/out.xlsx
 *.txt
+/runge-kutta/runge-kutta/K=1 Cx=0.3.PNG
+*.PNG
+*.xlsx
