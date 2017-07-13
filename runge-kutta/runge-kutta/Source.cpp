@@ -25,10 +25,10 @@
 #define EarthR 6371000
 
 //#define fuel0 8.2e3
-#define fuel01 5e3
-//#define fuel01 0
-#define fuel02 4.6e3
-//#define fuel02 9.6e3
+//#define fuel01 5e3
+#define fuel01 0
+//#define fuel02 4.6e3
+#define fuel02 9.6e3
 #define m0 1.27e4
 #define massVeh1 1e3
 #define massVeh2 8e2
@@ -37,7 +37,7 @@
 #define horizontalErr 400
 #define horizontalFlying false
 
-#define finalPoint 5e5
+#define finalPoint 1.e6
 #define finalErr 1e2
 
 double alf = 0;
@@ -62,8 +62,7 @@ double ro(double h);
 
 map<string, double> RungeKutta(const map<string, double>* data, const double step);
 void ballisticTrajectory(map<string, double> itData, double shutoffH, double h, ofstream &fxls, map<string, double>* lastItter);
-void constParamTrajectory(map<string, double> itData, double shutoffH, double h, ofstream & fxls, map<string, double>* lastItter);
-
+void constParamTrajectory(map<string, double> itData, double shutoffH, double h, ofstream & fxls, double* shutoffTime, map<string, double>* lastItter);
 
 void main()
 {
@@ -208,40 +207,138 @@ void main()
 
 //==========================================================================================================================
 	
-	double left = 45, right = 85;
-	double startingTeta;
+	//double left = 45, right = 85;
+	//double startingTeta;
+	//int dihotomyCount = 0;
+	//lastItter.clear();
+	//while (true)
+	//{
+	//	startingTeta = (left + right) / 2.;
+
+	//	itData["velocity"] = v0;
+	//	itData["teta"] = startingTeta*M_PI / 180.;
+	//	itData["length"] = x0;
+	//	itData["hight"] = y0;
+	//	itData["mass"] = m0;
+	//	itData["time"] = t0;
+
+	//	P = 3e5;
+	//	firstVehicle = true;
+	//	secondVehicle = false;
+
+	//	fxls.open("output.xls", ios::out);
+	//	fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t" << "ro\t" << endl
+	//		<< x0 / 1000. << "\t"
+	//		<< y0 / 1000. << "\t"
+	//		<< teta0 * 180 / M_PI << "\t"
+	//		<< t0 << "\t"
+	//		<< v0 << "\t"
+	//		<< X(ro(y0), v0) << "\t"
+	//		<< Y(X(ro(y0), v0)) << "\t"
+	//		<< m0 << "\t"
+	//		<< ro(y0) << "\t" << endl;
+
+	//	ballisticTrajectory(itData, -1, h, fxls, &lastItter);
+	//	dihotomyCount++;
+
+	//	if (dihotomyCount >= 100)
+	//		break;
+
+	//	if (fabs(lastItter["length"] - finalPoint) < finalErr)
+	//		break;
+	//	else
+	//	{
+	//		if (lastItter["length"] > finalPoint)
+	//			right = startingTeta;
+	//		else
+	//			left = startingTeta;
+	//	}
+	//}
+
+	//std::cout << "StartingTeta = " << startingTeta << endl << endl;
+
+//==========================================================================================================================
+
+	double constV = 1700;
+	double constH = 2e4;
+
+
+	lastItter.clear();
+	double maxshuoffTime;
+
+	itData["velocity"] = constV;
+	itData["teta"] = 0;
+	itData["length"] = 0;
+	itData["hight"] = constH;
+	itData["mass"] = m0;
+	itData["time"] = t0;
+
+	firstVehicle = false;
+
+	constParamTrajectory(itData, shutoffH, h, fxls, &maxshuoffTime, &lastItter);
+
+
+	double left = 0, right = maxshuoffTime;
+	double shutoffT;
 	int dihotomyCount = 0;
 	lastItter.clear();
 	while (true)
 	{
-		startingTeta = (left + right) / 2.;
+		shutoffT = (left + right) / 2.;
 
-		itData["velocity"] = v0;
-		itData["teta"] = startingTeta*M_PI / 180.;
-		itData["length"] = x0;
-		itData["hight"] = y0;
+		itData["velocity"] = constV;
+		itData["teta"] = 0;
+		itData["length"] = 0;
+		itData["hight"] = constH;
 		itData["mass"] = m0;
 		itData["time"] = t0;
 
 		P = 3e5;
-		firstVehicle = true;
+		alf = 0;
+		firstVehicle = false;
+		secondVehicle = true;
+
+
+		double b1, b2;
+		int writeCount = 1;
+		int writingPeriod = 1 / h - 1;
+		while (P > 0)
+		{
+			b1 = X(ro(itData["hight"]), itData["velocity"]);
+			b2 = -Y(X(ro(itData["hight"]), itData["velocity"])) + itData["mass"] * g - itData["mass"] * itData["velocity"] * itData["velocity"] * cos(itData["teta"]) / (EarthR + itData["hight"]);
+			alf = atan2(b2, b1) * 180 / M_PI;
+			P = b1 / cos(alf*M_PI / 180.);
+
+			itData = RungeKutta(&itData, h);
+
+			if (writeCount == writingPeriod)
+			{
+				fxls << itData["length"] / 1000. << "\t"
+					<< itData["hight"] / 1000. << "\t"
+					<< itData["teta"] * 180 / M_PI << "\t"
+					<< itData["time"] << "\t"
+					<< itData["velocity"] << "\t"
+					<< X(ro(itData["hight"]), itData["velocity"]) << "\t"
+					<< Y(X(ro(itData["hight"]), itData["velocity"])) << "\t"
+					<< itData["mass"] << "\t"
+					<< ro(itData["hight"]) << "\t" << endl;
+
+				writeCount = 0;
+			}
+			else
+				writeCount++;
+
+			if (fabs(itData["time"] - shutoffT) < h)
+				break;
+		}
 		secondVehicle = false;
+		//std::cout << "Alfa = " << alf << endl;
+		alf = 0;
+		P = 0;
+		ballisticTrajectory(itData, shutoffH, h, fxls, &lastItter);
 
-		fxls.open("output.xls", ios::out);
-		fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t" << "ro\t" << endl
-			<< x0 / 1000. << "\t"
-			<< y0 / 1000. << "\t"
-			<< teta0 * 180 / M_PI << "\t"
-			<< t0 << "\t"
-			<< v0 << "\t"
-			<< X(ro(y0), v0) << "\t"
-			<< Y(X(ro(y0), v0)) << "\t"
-			<< m0 << "\t"
-			<< ro(y0) << "\t" << endl;
 
-		ballisticTrajectory(itData, -1, h, fxls, &lastItter);
 		dihotomyCount++;
-
 		if (dihotomyCount >= 100)
 			break;
 
@@ -250,15 +347,11 @@ void main()
 		else
 		{
 			if (lastItter["length"] > finalPoint)
-				right = startingTeta;
+				right = shutoffT;
 			else
-				left = startingTeta;
+				left = shutoffT;
 		}
 	}
-
-	std::cout << "StartingTeta = " << startingTeta << endl << endl;
-
-//==========================================================================================================================
 
 //==========================================================================================================================
 	std::cout << "Hight = " << lastItter["hight"] / 1000. << " km" << endl
@@ -459,7 +552,7 @@ void ballisticTrajectory(map<string, double> itData, double shutoffH, double h, 
 	lastItter->clear();
 	lastItter->insert(itData.begin(), itData.end());
 }
-void constParamTrajectory(map<string, double> itData, double shutoffH, double h, ofstream & fxls, map<string, double>* lastItter)
+void constParamTrajectory(map<string, double> itData, double shutoffH, double h, ofstream & fxls, double* shutoffTime, map<string, double>* lastItter)
 {
 	double b1, b2;
 	int writeCount = 1;
@@ -491,6 +584,7 @@ void constParamTrajectory(map<string, double> itData, double shutoffH, double h,
 			writeCount++;
 	}
 	secondVehicle = false;
+	*shutoffTime = itData["time"];
 	std::cout << "Alfa = " << alf << endl;
 	alf = 0;
 	//itData["mass"] += massVeh1;
