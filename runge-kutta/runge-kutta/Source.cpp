@@ -37,7 +37,7 @@
 #define horizontalErr 400
 #define horizontalFlying false
 
-#define finalPoint 1.e6
+#define finalPoint 1.2e6
 #define finalErr 1e2
 
 double alf = 0;
@@ -259,8 +259,8 @@ void main()
 
 //==========================================================================================================================
 
-	double constV = 1700;
-	double constH = 2e4;
+	double constV = 1500;
+	double constH = 2.5e4;
 
 
 	lastItter.clear();
@@ -297,6 +297,19 @@ void main()
 		alf = 0;
 		firstVehicle = false;
 		secondVehicle = true;
+
+		fxls.open("output.xls", ios::out);
+		fxls << "x\t" << "y\t" << "teta\t" << "t\t" << "v\t" << "X\t" << "Y\t" << "m\t" << "ro\t" << endl
+			<< 0 / 1000. << "\t"
+			<< constH / 1000. << "\t"
+			<< 0 * 180 / M_PI << "\t"
+			<< t0 << "\t"
+			<< constV << "\t"
+			<< X(ro(constH), constV) << "\t"
+			<< Y(X(ro(constH), constV)) << "\t"
+			<< m0 << "\t"
+			<< ro(constH) << "\t" << endl;
+
 
 
 		double b1, b2;
@@ -585,7 +598,7 @@ void constParamTrajectory(map<string, double> itData, double shutoffH, double h,
 	}
 	secondVehicle = false;
 	*shutoffTime = itData["time"];
-	std::cout << "Alfa = " << alf << endl;
+	//std::cout << "Alfa = " << alf << endl;
 	alf = 0;
 	//itData["mass"] += massVeh1;
 
